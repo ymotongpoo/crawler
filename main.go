@@ -1,11 +1,16 @@
 package main
 
 import (
-	"fmt"
+	"time"
 
 	"crawler"
 )
 
+var MaxBoardWorkers = 2
+
 func main() {
-	fmt.Println(crawler.SourceCodec)
+	for {
+		crawler.Run(MaxBoardWorkers)
+		time.Sleep(time.Minute * 15)
+	}
 }

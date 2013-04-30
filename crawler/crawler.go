@@ -12,6 +12,7 @@ import (
 const (
 	SourceCodec = "Shift_JIS"
 	MenuURL     = "http://menu.2ch.net/bbsmenu.html"
+	ChannelSize = 1000
 )
 
 var (
@@ -70,8 +71,7 @@ func GetThreadData(t *Thread) ([]*ThreadData, error) {
 }
 
 func CrawlThread(threads <-chan *Thread) {
-	for {
-		t := <-threads
+	for t := range threads {
 		dats, err := GetThreadData(t)
 		if err != nil {
 			log.Printf(t.Board.URL)
@@ -90,19 +90,19 @@ func CrawlThread(threads <-chan *Thread) {
 }
 
 func CrawlBoard(boards <-chan *Board) {
-	for {
-		b := <-boards
+	for b := range boards {
 		log.Println(b.Title)
 		threads, err := GetThreadList(b)
 		if err != nil {
 			log.Printf("Error on fetching thread list in %v", b.URL)
 		}
 		if len(threads) > 0 {
-			tasks := make(chan *Thread)
+			tasks := make(chan *Thread, ChannelSize)
 			go func() {
 				for _, t := range threads {
 					tasks <- t
 				}
+				close(tasks)
 			}()
 			ExecCrawl(tasks, 8)
 		}
@@ -124,11 +124,12 @@ func Run(maxWorkers int) {
 	// TODO(ymotongpoo): Implement board insertion to datastore.
 	// datastore.InsertBoards(boards)
 	// boards = datastore.GetBoards()
-	tasks := make(chan *Board)
+	tasks := make(chan *Board, ChannelSize)
 	go func() {
 		for _, b := range boards {
 			tasks <- b
 		}
+		close(tasks)
 	}()
 	for w := 0; w < maxWorkers; w++ {
 		go CrawlBoard(tasks)
