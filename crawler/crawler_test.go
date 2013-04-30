@@ -53,7 +53,7 @@ func TestGetThreadData(t *testing.T) {
 		URL:      "http://uni.2ch.net/test/read.cgi/homealone/1329046861/",
 		ResCount: 67,
 	}
-	list, err := GetThreadData(board, thread)
+	list, err := GetThreadData(thread)
 	if err != nil {
 		t.Errorf("%v\n", err)
 	}

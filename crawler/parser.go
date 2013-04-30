@@ -133,7 +133,7 @@ func ParseThreadList(b *Board, d gq.Document) (result []*Thread) {
 }
 
 // ParseThread loads all dat file data into a slice of ThreadData.
-func ParseThread(b *Board, t *Thread, r []byte) (result []*ThreadData) {
+func ParseThread(t *Thread, r []byte) (result []*ThreadData) {
 	buffer := bytes.NewBuffer(r)
 	i := 1
 	for {
@@ -146,7 +146,7 @@ func ParseThread(b *Board, t *Thread, r []byte) (result []*ThreadData) {
 		cols := bytes.Split(line, []byte("<>"))
 		if len(cols) > 4 {
 			td := &ThreadData{
-				Board:   b,
+				Board:   t.Board,
 				Thread:  t,
 				Handle:  string(cols[0]),
 				MailTo:  string(cols[1]),
