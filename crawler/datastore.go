@@ -1,73 +1,62 @@
 package crawler
 
 import (
+	"reflect"
+
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 )
 
 var (
-	DefaultServer = "localhost"
+	DefaultMongoServer = "localhost"
+	DatabaseName       = "crawler"
 )
 
-func InsertDat(dats []*ThreadData) error {
-	session, err := mgo.Dial(DefaultServer)
+func insertData(collection string, data interface{}) error {
+	session, err := mgo.Dial(DefaultMongoServer)
 	if err != nil {
 		return err
 	}
 	defer session.Close()
-
 	session.SetMode(mgo.Monotonic, true)
-	c := session.DB("crawler").C("dat")
-	for _, d := range dats {
-		err = c.Insert(d)
-		if err != nil {
+	c := session.DB(DatabaseName).C(collection)
+	r := reflect.ValueOf(data)
+	t := r.Type()
+	k := t.Kind()
+	switch k {
+	case reflect.Slice:
+		for i := 0; i < r.Len(); i++ {
+			if err = c.Insert(r.Index(i)); err != nil {
+				return err
+			}
+		}
+	default:
+		if err = c.Insert(r); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func InsertDat(dats []*ThreadData) error {
+	return insertData("dat", dats)
 }
 
 func InsertBoards(boards []*Board) error {
-	session, err := mgo.Dial(DefaultServer)
-	if err != nil {
-		return err
-	}
-	defer session.Close()
-
-	session.SetMode(mgo.Monotonic, true)
-	c := session.DB("crawler").C("board")
-	for _, b := range boards {
-		err = c.Insert(b)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return insertData("board", boards)
 }
 
-func InsertThread(thread *Thread) (int, error) {
-	session, err := mgo.Dial(DefaultServer)
-	if err != nil {
-		return 0, err
-	}
-	defer session.Close()
-
-	session.SetMode(mgo.Monotonic, true)
-	c := session.DB("crawler").C("thread")
-	err = c.Insert(thread)
-	if err != nil {
-		return 0, err
-	}
-	return 0, nil
+func InsertThread(thread *Thread) error {
+	return insertData("thread", thread)
 }
 
 func GetBoards() ([]*Board, error) {
-	session, err := mgo.Dial(DefaultServer)
+	session, err := mgo.Dial(DefaultMongoServer)
 	if err != nil {
 		return nil, err
 	}
 	defer session.Close()
-	c := session.DB("crawler").C("board")
+	c := session.DB(DatabaseName).C("board")
 	result := []*Board{}
 	err = c.Find(bson.M{}).All(&result)
 	if err != nil {

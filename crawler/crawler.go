@@ -77,7 +77,9 @@ func CrawlThread(threads <-chan *Thread) {
 			log.Printf(t.Board.URL)
 		}
 		if len(dats) > 0 {
-			old_count, err := InsertThread(t)
+			var old_count int
+			// TODO(ymotongpoo): Change interface to return (int, error)
+			err := InsertThread(t)
 			if err != nil {
 				log.Printf("Failed to store thread %v\n", t.Title)
 				continue
