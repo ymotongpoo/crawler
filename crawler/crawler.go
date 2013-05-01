@@ -77,12 +77,13 @@ func CrawlThread(threads <-chan *Thread) {
 			log.Printf(t.Board.URL)
 		}
 		if len(dats) > 0 {
-			var old_count int
-			// TODO(ymotongpoo): Replace this with count from datastore.
-			// old_count := 0
+			old_count, err := InsertThread(t)
+			if err != nil {
+				log.Printf("Failed to store thread %v\n", t.Title)
+				continue
+			}
 			dats = dats[old_count:]
-			// TODO(ymotongpoo): Implement dat insertion to datastore.
-			// datastore.InsertDat(dats)
+			InsertDat(dats)
 		} else {
 			log.Printf("bg20 is dead. %v", t.Title)
 		}
@@ -121,9 +122,8 @@ func Run(maxWorkers int) {
 	if err != nil {
 		log.Fatalf("Error on fetching board list")
 	}
-	// TODO(ymotongpoo): Implement board insertion to datastore.
-	// datastore.InsertBoards(boards)
-	// boards = datastore.GetBoards()
+	InsertBoards(boards)
+	// boards = GetBoards()
 	tasks := make(chan *Board, ChannelSize)
 	go func() {
 		for _, b := range boards {
