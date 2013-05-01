@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"regexp"
+	"runtime"
 )
 
 const (
@@ -16,7 +17,8 @@ const (
 )
 
 var (
-	UrlRe = regexp.MustCompile(`.*/(\d+)/.*`)
+	UrlRe  = regexp.MustCompile(`.*/(\d+)/.*`)
+	NumCPU = runtime.NumCPU()
 )
 
 // GetBoardList returns 2ch board list
@@ -70,6 +72,8 @@ func GetThreadData(t *Thread) ([]*ThreadData, error) {
 	return nil, errors.New("No thread data found.")
 }
 
+// CrawlThread go through all threads in channel 'threads' and
+// store thread data into datastore.
 func CrawlThread(threads <-chan *Thread) {
 	for t := range threads {
 		dats, err := GetThreadData(t)
@@ -92,6 +96,8 @@ func CrawlThread(threads <-chan *Thread) {
 	}
 }
 
+// CrawlBoard go through all boardss in channel 'boards' and
+// store board data into datastore.
 func CrawlBoard(boards <-chan *Board) {
 	for b := range boards {
 		log.Println(b.Title)
@@ -112,14 +118,16 @@ func CrawlBoard(boards <-chan *Board) {
 	}
 }
 
+// ExecCrawl runs workers for CrawlThread.
 func ExecCrawl(threads <-chan *Thread, maxWorkers int) {
 	for w := 0; w < maxWorkers; w++ {
 		go CrawlThread(threads)
 	}
-
 }
 
+// Run launches workers for CrawlBoard.
 func Run(maxWorkers int) {
+	runtime.GOMAXPROCS(NumCPU)
 	boards, err := GetBoardList()
 	if err != nil {
 		log.Fatalf("Error on fetching board list")
