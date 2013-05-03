@@ -5,6 +5,8 @@ import (
 
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
+
+	"crawler"
 )
 
 var (
@@ -39,26 +41,26 @@ func insertData(collection string, data interface{}) error {
 	return nil
 }
 
-func InsertDat(dats []*ThreadData) error {
+func InsertDat(dats []*crawler.ThreadData) error {
 	return insertData("dat", dats)
 }
 
-func InsertBoards(boards []*Board) error {
+func InsertBoards(boards []*crawler.Board) error {
 	return insertData("board", boards)
 }
 
-func InsertThread(thread *Thread) error {
+func InsertThread(thread *crawler.Thread) error {
 	return insertData("thread", thread)
 }
 
-func GetBoards() ([]*Board, error) {
+func GetBoards() ([]*crawler.Board, error) {
 	session, err := mgo.Dial(DefaultMongoServer)
 	if err != nil {
 		return nil, err
 	}
 	defer session.Close()
 	c := session.DB(DatabaseName).C("board")
-	result := []*Board{}
+	result := []*crawler.Board{}
 	err = c.Find(bson.M{}).All(&result)
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-package crawler
+package crawling
 
 import (
 	"bytes"
@@ -8,6 +8,9 @@ import (
 	"log"
 	"regexp"
 	"runtime"
+
+	"crawler"
+	datastore "crawler/mongo"
 )
 
 const (
@@ -22,7 +25,7 @@ var (
 )
 
 // GetBoardList returns 2ch board list
-func GetBoardList() ([]*Board, error) {
+func GetBoardList() ([]*crawler.Board, error) {
 	r, err := decodeData(MenuURL, SourceCodec)
 	if err != nil {
 		return nil, err
@@ -36,7 +39,7 @@ func GetBoardList() ([]*Board, error) {
 }
 
 // GetThreadList returns 2ch thread list in a board b.
-func GetThreadList(b *Board) ([]*Thread, error) {
+func GetThreadList(b *crawler.Board) ([]*crawler.Thread, error) {
 	url := b.URL + "subback.html"
 	r, err := decodeData(url, SourceCodec)
 	if err != nil {
@@ -51,7 +54,7 @@ func GetThreadList(b *Board) ([]*Thread, error) {
 }
 
 // GetThreadData returns a list of thread comments in a thread t of a board b.
-func GetThreadData(t *Thread) ([]*ThreadData, error) {
+func GetThreadData(t *crawler.Thread) ([]*crawler.ThreadData, error) {
 	match := UrlRe.FindStringSubmatch(t.URL)
 	bg20 := `http://bg20.2ch.net/test/r.so/`
 	if len(match) > 0 {
@@ -74,7 +77,7 @@ func GetThreadData(t *Thread) ([]*ThreadData, error) {
 
 // CrawlThread go through all threads in channel 'threads' and
 // store thread data into datastore.
-func CrawlThread(threads <-chan *Thread) {
+func CrawlThread(threads <-chan *crawler.Thread) {
 	for t := range threads {
 		dats, err := GetThreadData(t)
 		if err != nil {
@@ -83,13 +86,13 @@ func CrawlThread(threads <-chan *Thread) {
 		if len(dats) > 0 {
 			var old_count int
 			// TODO(ymotongpoo): Change interface to return (int, error)
-			err := InsertThread(t)
+			err := datastore.InsertThread(t)
 			if err != nil {
 				log.Printf("Failed to store thread %v\n", t.Title)
 				continue
 			}
 			dats = dats[old_count:]
-			InsertDat(dats)
+			datastore.InsertDat(dats)
 		} else {
 			log.Printf("bg20 is dead. %v", t.Title)
 		}
@@ -98,7 +101,7 @@ func CrawlThread(threads <-chan *Thread) {
 
 // CrawlBoard go through all boardss in channel 'boards' and
 // store board data into datastore.
-func CrawlBoard(boards <-chan *Board) {
+func CrawlBoard(boards <-chan *crawler.Board) {
 	for b := range boards {
 		log.Println(b.Title)
 		threads, err := GetThreadList(b)
@@ -106,7 +109,7 @@ func CrawlBoard(boards <-chan *Board) {
 			log.Printf("Error on fetching thread list in %v", b.URL)
 		}
 		if len(threads) > 0 {
-			tasks := make(chan *Thread, ChannelSize)
+			tasks := make(chan *crawler.Thread, ChannelSize)
 			go func() {
 				for _, t := range threads {
 					tasks <- t
@@ -119,7 +122,7 @@ func CrawlBoard(boards <-chan *Board) {
 }
 
 // ExecCrawl runs workers for CrawlThread.
-func ExecCrawl(threads <-chan *Thread, maxWorkers int) {
+func ExecCrawl(threads <-chan *crawler.Thread, maxWorkers int) {
 	for w := 0; w < maxWorkers; w++ {
 		go CrawlThread(threads)
 	}
@@ -132,9 +135,9 @@ func Run(maxWorkers int) {
 	if err != nil {
 		log.Fatalf("Error on fetching board list")
 	}
-	InsertBoards(boards)
-	// boards = GetBoards()
-	tasks := make(chan *Board, ChannelSize)
+	datastore.InsertBoards(boards)
+	// boards = datastore.GetBoards()
+	tasks := make(chan *crawler.Board, ChannelSize)
 	go func() {
 		for _, b := range boards {
 			tasks <- b

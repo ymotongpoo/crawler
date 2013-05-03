@@ -1,7 +1,9 @@
-package crawler
+package crawling
 
 import (
 	"testing"
+
+	"crawler"
 )
 
 func TestGetBoardList(t *testing.T) {
@@ -18,12 +20,12 @@ func TestGetBoardList(t *testing.T) {
 }
 
 func TestGetThreadList(t *testing.T) {
-	in := []*Board{
-		&Board{
+	in := []*crawler.Board{
+		&crawler.Board{
 			Title: "一人暮らし",
 			URL:   "http://uni.2ch.net/homealone/",
 		},
-		&Board{
+		&crawler.Board{
 			Title: "PC初心者",
 			URL:   "http://kohada.2ch.net/pcqa/",
 		},
@@ -43,11 +45,11 @@ func TestGetThreadList(t *testing.T) {
 }
 
 func TestGetThreadData(t *testing.T) {
-	board := &Board{
+	board := &crawler.Board{
 		Title: "一人暮らし",
 		URL:   "http://uni.2ch.net/homealone/",
 	}
-	thread := &Thread{
+	thread := &crawler.Thread{
 		Title:    "とりあえず部屋にあるもの挙げてみろ",
 		Board:    board,
 		URL:      "http://uni.2ch.net/test/read.cgi/homealone/1329046861/",

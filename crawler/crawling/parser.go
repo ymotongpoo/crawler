@@ -1,4 +1,4 @@
-package crawler
+package crawling
 
 import (
 	"bytes"
@@ -13,6 +13,8 @@ import (
 	"code.google.com/p/go.net/html"
 	"code.google.com/p/mahonia"
 	gq "github.com/PuerkitoBio/goquery"
+
+	"crawler"
 )
 
 var (
@@ -20,30 +22,6 @@ var (
 	ResRe   = regexp.MustCompile(`.*\((\d+)\).*`)
 	TitleRe = regexp.MustCompile(`\d+:\s+(.*)\((\d+)\)`)
 )
-
-type Board struct {
-	Title string
-	URL   string
-}
-
-type Thread struct {
-	Title    string
-	Board    *Board
-	URL      string
-	ResCount int
-}
-
-type ThreadData struct {
-	Board   *Board
-	Thread  *Thread
-	URL     string
-	Handle  string
-	MailTo  string
-	Date    string
-	Comment string
-	Other   string
-	No      int
-}
 
 func decodeData(url, srcCodec string) (*mahonia.Reader, error) {
 	// Load URL
@@ -71,7 +49,7 @@ func newDocument(r *mahonia.Reader) (*gq.Document, error) {
 }
 
 // ParseMenu parses 2ch BBS menu page and returns a slice of board list.
-func ParseMenu(d *gq.Document) (result []*Board) {
+func ParseMenu(d *gq.Document) (result []*crawler.Board) {
 	d.Find("a").Each(func(_ int, s *gq.Selection) {
 		href, exist := s.Attr("href")
 		if !exist {
@@ -81,7 +59,7 @@ func ParseMenu(d *gq.Document) (result []*Board) {
 			if !strings.HasSuffix(href, "php") &&
 				!strings.HasSuffix(href, ".net/") &&
 				!strings.HasSuffix(href, ".jp/") {
-				result = append(result, &Board{
+				result = append(result, &crawler.Board{
 					Title: s.Text(),
 					URL:   href,
 				})
@@ -91,8 +69,8 @@ func ParseMenu(d *gq.Document) (result []*Board) {
 	return result
 }
 
-// ParseThreadList returns a thread list in a board b.
-func ParseThreadList(b *Board, d gq.Document) (result []*Thread) {
+// Parsecrawler.ThreadList returns a thread list in a board b.
+func ParseThreadList(b *crawler.Board, d gq.Document) (result []*crawler.Thread) {
 	var base_url string
 	d.Find("base").Each(func(_ int, s *gq.Selection) {
 		var exist bool
@@ -120,7 +98,7 @@ func ParseThreadList(b *Board, d gq.Document) (result []*Thread) {
 				if err != nil {
 					return
 				}
-				result = append(result, &Thread{
+				result = append(result, &crawler.Thread{
 					Title:    title,
 					Board:    b,
 					URL:      url[:len(url)-3],
@@ -132,8 +110,8 @@ func ParseThreadList(b *Board, d gq.Document) (result []*Thread) {
 	return result
 }
 
-// ParseThread loads all dat file data into a slice of ThreadData.
-func ParseThread(t *Thread, r []byte) (result []*ThreadData) {
+// Parsecrawler.Thread loads all dat file data into a slice of crawler.ThreadData.
+func ParseThread(t *crawler.Thread, r []byte) (result []*crawler.ThreadData) {
 	buffer := bytes.NewBuffer(r)
 	i := 1
 	for {
@@ -145,7 +123,7 @@ func ParseThread(t *Thread, r []byte) (result []*ThreadData) {
 		}
 		cols := bytes.Split(line, []byte("<>"))
 		if len(cols) > 4 {
-			td := &ThreadData{
+			td := &crawler.ThreadData{
 				Board:   t.Board,
 				Thread:  t,
 				Handle:  string(cols[0]),

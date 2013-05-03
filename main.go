@@ -3,14 +3,14 @@ package main
 import (
 	"time"
 
-	"crawler"
+	"crawler/crawling"
 )
 
 var MaxBoardWorkers = 2
 
 func main() {
 	for {
-		crawler.Run(MaxBoardWorkers)
+		crawling.Run(MaxBoardWorkers)
 		time.Sleep(time.Minute * 15)
 	}
 }
