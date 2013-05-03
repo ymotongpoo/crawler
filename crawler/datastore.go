@@ -26,7 +26,8 @@ func insertData(collection string, data interface{}) error {
 	switch k {
 	case reflect.Slice:
 		for i := 0; i < r.Len(); i++ {
-			if err = c.Insert(r.Index(i)); err != nil {
+			int := r.Index(i).Interface()
+			if err = c.Insert(int); err != nil {
 				return err
 			}
 		}
