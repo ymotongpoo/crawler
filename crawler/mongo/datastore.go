@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"reflect"
+	"strconv"
 
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -10,53 +11,106 @@ import (
 )
 
 var (
-	DefaultMongoServer = "localhost"
-	DatabaseName       = "crawler"
+	DefaultMongoHost = "localhost"
+	DefaultMongoPort = 27017
+	DatabaseName     = "crawler"
 )
 
-func insertData(collection string, data interface{}) error {
-	session, err := mgo.Dial(DefaultMongoServer)
-	if err != nil {
-		return err
+const (
+	MainDatabase         = "main"
+	DatDatabase          = "dat"
+	BoardListCollection  = "board_list"
+	ThreadListCollection = "thread_list"
+	ThreadCollection     = "thread"
+)
+
+// GetConnection returns a pointer of mgo.Session based on host and port.
+func GetConnection(host string, port int) (*mgo.Session, error) {
+	if host == "" {
+		host = DefaultMongoHost
+	}
+	if port == 0 {
+		port = DefaultMongoPort
+	}
+	portStr := strconv.Itoa(port)
+	return mgo.Dial("mongodb://" + host + ":" + portStr)
+}
+
+// insertData inserts data in collection
+func insertData(session *mgo.Session, database, collection string, data interface{}) error {
+	var err error
+	if session == nil {
+		session, err = GetConnection(DefaultMongoHost, DefaultMongoPort)
+		if err != nil {
+			return err
+		}
 	}
 	defer session.Close()
 	session.SetMode(mgo.Monotonic, true)
-	c := session.DB(DatabaseName).C(collection)
+	c := session.DB(database).C(collection)
 	r := reflect.ValueOf(data)
 	t := r.Type()
 	k := t.Kind()
 	switch k {
 	case reflect.Slice:
 		for i := 0; i < r.Len(); i++ {
-			int := r.Index(i).Interface()
-			if err = c.Insert(int); err != nil {
+			itf := r.Index(i).Interface()
+			if err = c.Insert(itf); err != nil {
 				return err
 			}
 		}
 	default:
-		if err = c.Insert(r); err != nil {
+		if err = c.Insert(r.Interface()); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func InsertDat(dats []*crawler.ThreadData) error {
-	return insertData("dat", dats)
+func getData(session *mgo.Session, database, collection string) (interface{}, error) {
+	return nil, nil
 }
 
-func InsertBoards(boards []*crawler.Board) error {
-	return insertData("board", boards)
+func InsertDat(session *mgo.Session, dats []*crawler.ThreadData) error {
+	var err error
+	if session == nil {
+		session, err = GetConnection(DefaultMongoHost, DefaultMongoPort)
+		if err != nil {
+			return err
+		}
+	}
+	return insertData(session, MainDatabase, ThreadCollection, dats)
 }
 
-func InsertThread(thread *crawler.Thread) error {
-	return insertData("thread", thread)
+func InsertBoards(session *mgo.Session, boards []*crawler.Board) error {
+	var err error
+	if session == nil {
+		session, err = GetConnection(DefaultMongoHost, DefaultMongoPort)
+		if err != nil {
+			return err
+		}
+	}
+	return insertData(session, MainDatabase, BoardListCollection, boards)
 }
 
-func GetBoards() ([]*crawler.Board, error) {
-	session, err := mgo.Dial(DefaultMongoServer)
-	if err != nil {
-		return nil, err
+func InsertThread(session *mgo.Session, thread *crawler.Thread) error {
+	var err error
+	if session == nil {
+		session, err = GetConnection(DefaultMongoHost, DefaultMongoPort)
+		if err != nil {
+			return err
+		}
+	}
+	return insertData(session, MainDatabase, ThreadListCollection, thread)
+}
+
+func GetBoards(session *mgo.Session) ([]*crawler.Board, error) {
+	var err error
+	if session == nil {
+		session, err = GetConnection(DefaultMongoHost, DefaultMongoPort)
+		if err != nil {
+			return nil, err
+		}
 	}
 	defer session.Close()
 	c := session.DB(DatabaseName).C("board")

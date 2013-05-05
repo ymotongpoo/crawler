@@ -13,6 +13,11 @@
 
 2ch crawler written in Go.
 
+|droneio|_
+
+.. |droneio| image:: https://drone.io/github.com/ymotongpoo/crawler/status.png
+.. _droneio: https://drone.io/github.com/ymotongpoo/crawler
+
 Original version is in Python written by @mopemope.
 https://gist.github.com/mopemope/5464814
 

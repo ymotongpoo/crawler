@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -70,7 +69,7 @@ func ParseMenu(d *gq.Document) (result []*crawler.Board) {
 }
 
 // Parsecrawler.ThreadList returns a thread list in a board b.
-func ParseThreadList(b *crawler.Board, d gq.Document) (result []*crawler.Thread) {
+func ParseThreadList(b *crawler.Board, d *gq.Document) (result []*crawler.Thread) {
 	var base_url string
 	d.Find("base").Each(func(_ int, s *gq.Selection) {
 		var exist bool
@@ -89,11 +88,11 @@ func ParseThreadList(b *crawler.Board, d gq.Document) (result []*crawler.Thread)
 		if !exist {
 			return
 		}
-		url := path.Join(base_url, href)
+		url := base_url + href
 		if strings.HasSuffix(url, "50") {
 			match := TitleRe.FindStringSubmatch(v)
 			if len(match) > 0 {
-				title := match[1]
+				title := strings.TrimSpace(match[1])
 				res_cnt, err := strconv.Atoi(match[2])
 				if err != nil {
 					return

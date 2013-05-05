@@ -49,7 +49,7 @@ func GetThreadList(b *crawler.Board) ([]*crawler.Thread, error) {
 	if err != nil {
 		return nil, err
 	}
-	links := ParseThreadList(b, *doc)
+	links := ParseThreadList(b, doc)
 	return links, nil
 }
 
@@ -86,13 +86,13 @@ func CrawlThread(threads <-chan *crawler.Thread) {
 		if len(dats) > 0 {
 			var old_count int
 			// TODO(ymotongpoo): Change interface to return (int, error)
-			err := datastore.InsertThread(t)
+			err := datastore.InsertThread(nil, t)
 			if err != nil {
 				log.Printf("Failed to store thread %v\n", t.Title)
 				continue
 			}
 			dats = dats[old_count:]
-			datastore.InsertDat(dats)
+			datastore.InsertDat(nil, dats)
 		} else {
 			log.Printf("bg20 is dead. %v", t.Title)
 		}
@@ -135,7 +135,7 @@ func Run(maxWorkers int) {
 	if err != nil {
 		log.Fatalf("Error on fetching board list")
 	}
-	datastore.InsertBoards(boards)
+	datastore.InsertBoards(nil, boards)
 	// boards = datastore.GetBoards()
 	tasks := make(chan *crawler.Board, ChannelSize)
 	go func() {
