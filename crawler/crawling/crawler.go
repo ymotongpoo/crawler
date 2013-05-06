@@ -8,6 +8,7 @@ import (
 	"log"
 	"regexp"
 	"runtime"
+	"time"
 
 	"crawler"
 	datastore "crawler/mongo"
@@ -20,8 +21,9 @@ const (
 )
 
 var (
-	UrlRe  = regexp.MustCompile(`.*/(\d+)/.*`)
-	NumCPU = runtime.NumCPU()
+	UrlRe         = regexp.MustCompile(`.*/(\d+)/.*`)
+	NumCPU        = runtime.NumCPU()
+	CrawlWaitTime = 15 * time.Second
 )
 
 // GetBoardList returns 2ch board list
@@ -81,21 +83,37 @@ func CrawlThread(threads <-chan *crawler.Thread) {
 	for t := range threads {
 		dats, err := GetThreadData(t)
 		if err != nil {
-			log.Printf(t.Board.URL)
+			log.Printf("%v: %v", t.URL, err)
 		}
 		if len(dats) > 0 {
-			var old_count int
-			// TODO(ymotongpoo): Change interface to return (int, error)
-			err := datastore.InsertThread(nil, t)
-			if err != nil {
-				log.Printf("Failed to store thread %v\n", t.Title)
+			r, err := datastore.FindThread(nil, t)
+			if err != nil && err != datastore.ErrNotFound {
+				log.Printf("Failed to find thread: %v", t.Title)
 				continue
 			}
-			dats = dats[old_count:]
-			datastore.InsertDat(nil, dats)
+			var old_count int
+			if r != nil {
+				old_count = r.ResCount
+				if t.ResCount > old_count {
+					err := datastore.UpdateThread(nil, r, t)
+					if err != nil {
+						log.Printf("Failed to update thread: %v", t.Title)
+						continue
+					}
+					dats = dats[old_count:]
+					datastore.InsertDat(nil, dats)
+				}
+			} else {
+				err := datastore.InsertThread(nil, t)
+				if err != nil {
+					log.Printf("Failed to store thread %v\n", t.Title)
+					continue
+				}
+			}
 		} else {
 			log.Printf("bg20 is dead. %v", t.Title)
 		}
+		time.Sleep(CrawlWaitTime)
 	}
 }
 
